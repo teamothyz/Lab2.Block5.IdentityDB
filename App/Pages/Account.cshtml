@@ -1,0 +1,38 @@
+﻿@page
+@model App.Pages.AccountModel
+@{
+}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Email</th>
+            <th>Roles</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var account in Model.Users)
+        {
+            <tr>
+                <td>@account.Email</td>
+                <td>
+                    <form method="post">
+                        @foreach (var role in Model.BaseRoles)
+                        {
+                            <div>
+                                <input type="checkbox" name="Roles" value="@role" @(account.Roles.Contains(role) ? "checked" : "")>
+                                <label>@role</label>
+                            </div>
+                        }
+                        @foreach(var role in account.Roles)
+                        {
+                            <input type="hidden" name="CurrentRoles" value="@role">
+                        }
+                        <input type="hidden" name="Email" value="@account.Email">
+                        <button type="submit">Save</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

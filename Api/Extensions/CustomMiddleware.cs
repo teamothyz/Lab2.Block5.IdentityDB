@@ -5,11 +5,29 @@ namespace Api.Extensions
     public class CustomMiddleware
     {
         private readonly RequestDelegate _next;
-        public static readonly HashSet<string> BlackListTokens = new();
+        public static readonly Dictionary<string, DateTime> BlackListTokens = new();
 
         public CustomMiddleware(RequestDelegate next)
         {
             _next = next;
+            _ = Task.Run(() => RemoveTokenTask());
+        }
+
+        private static void RemoveTokenTask()
+        {
+            while (true)
+            {
+                var needToRemove = new List<string>();
+                foreach (var token in BlackListTokens)
+                {
+                    if (token.Value <= DateTime.Now) needToRemove.Add(token.Key);
+                }
+                foreach (var key in needToRemove)
+                {
+                    BlackListTokens.Remove(key);
+                }
+                Thread.Sleep(60 * 1000);
+            }
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -21,7 +39,7 @@ namespace Api.Extensions
                     var token = context.Request.Headers["Authorization"].FirstOrDefault();
                     if (!string.IsNullOrWhiteSpace(token))
                     {
-                        if (BlackListTokens.Contains(token))
+                        if (BlackListTokens.ContainsKey(token))
                         {
                             context.Response.StatusCode = StatusCodes.Status403Forbidden;
                             await context.Response.WriteAsync(string.Empty);
@@ -35,7 +53,7 @@ namespace Api.Extensions
                     var token = context.Request.Headers["authorization"].FirstOrDefault();
                     if (!string.IsNullOrWhiteSpace(token))
                     {
-                        if (BlackListTokens.Contains(token))
+                        if (BlackListTokens.ContainsKey(token))
                         {
                             context.Response.StatusCode = StatusCodes.Status403Forbidden;
                             await context.Response.WriteAsync(string.Empty);

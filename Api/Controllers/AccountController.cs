@@ -21,17 +21,20 @@ namespace Api.Controllers
         private readonly SignInManager<User> _signInManager;
         private readonly UserManager<User> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
-
+        private readonly Lab2Context _dbcontext;
         private readonly IConfiguration _configuration;
+
         public AccountController(SignInManager<User> signInManager,
             UserManager<User> userManager,
             RoleManager<IdentityRole> roleManager,
+            Lab2Context dbcontext,
             IConfiguration configuration)
         {
             _signInManager = signInManager;
             _userManager = userManager;
             _roleManager = roleManager;
             _configuration = configuration;
+            _dbcontext = dbcontext;
         }
 
         [HttpPost("gettoken")]
@@ -104,7 +107,7 @@ namespace Api.Controllers
         {
             try
             {
-                CustomMiddleware.BlackListTokens.Add(ApiContext.Current.Token);
+                CustomMiddleware.BlackListTokens.Add(ApiContext.Current.Token, DateTime.Now);
                 return NoContent();
             }
             catch (Exception ex)
@@ -157,6 +160,43 @@ namespace Api.Controllers
                 if (!rs.Succeeded) return BadRequest("Remove role failed");
 
                 return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet("list")]
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult<List<UserResponse>>> GetUsers()
+        {
+            try
+            {
+                var response = new List<UserResponse>();
+                var usersInfo = await (from user in _dbcontext.Users
+                                       join role in _dbcontext.UserRoles
+                                       on user.Id equals role.UserId
+                                       into roles
+
+                                       from role in roles.DefaultIfEmpty()
+                                       join roleInfo in _dbcontext.Roles
+                                       on role.RoleId equals roleInfo.Id
+                                       into rolesInfo
+
+                                       from roleInfo in rolesInfo.DefaultIfEmpty()
+                                       select Tuple.Create(user, role, roleInfo))
+                                       .ToListAsync();
+
+                var usersGroupByRole = usersInfo.GroupBy(u => u.Item1.Id);
+                foreach (var gr in usersGroupByRole)
+                {
+                    var user = new UserResponse();
+                    user.Email = gr.First().Item1.Email;
+                    user.Roles = gr.Select(gr => gr.Item3.Name).ToList();
+                    response.Add(user);
+                }
+                return response;
             }
             catch (Exception ex)
             {

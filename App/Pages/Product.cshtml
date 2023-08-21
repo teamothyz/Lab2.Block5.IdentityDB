@@ -1,0 +1,28 @@
+﻿@page
+@model App.Pages.ProductModel
+@{
+}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Supplier</th>
+            <th>Category</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var product in Model.Products)
+        {
+            <tr>
+                <td>@product.Id</td>
+                <td>@product.Name</td>
+                <td>@product.Description</td>
+                <td>@product.Supplier.Name</td>
+                <td>@product.Category.Name</td>
+            </tr>
+        }
+    </tbody>
+</table>
